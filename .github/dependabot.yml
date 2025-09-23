@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directories:
+      - "/"
+      - "/*"        # all immediate subfolders
+    schedule:
+      interval: "cron"
+      cronjob: "0 0 1 * *"   # 1st of every month 00:00 UTC
+    groups:
+      all-gradle-updates:
+        patterns: ["*"]
