@@ -1,0 +1,106 @@
+<div th:fragment="orderResult">
+    <div th:if="${validationError != null}">
+        <wa-card style="border-left: var(--wa-border-width-m) solid var(--wa-color-warning-60);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-warning-60);">Validation issue</strong>
+                <span th:text="${validationError}"></span>
+            </div>
+        </wa-card>
+    </div>
+    <div th:if="${technicalError != null}">
+        <wa-card style="border-left: var(--wa-border-width-m) solid var(--wa-color-danger-60);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-danger-60);">Unable to reach Shopify</strong>
+                <span th:text="${technicalError}"></span>
+            </div>
+        </wa-card>
+    </div>
+    <div th:if="${orderNotFound}">
+        <wa-card style="border-left: var(--wa-border-width-m) solid var(--wa-color-warning-50);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-warning-50);">Order not found</strong>
+                <span th:text="${'No order matched ' + orderNumber}"></span>
+            </div>
+        </wa-card>
+    </div>
+    <div th:if="${orderDetails != null}" class="wa-stack wa-gap-l">
+        <wa-card>
+            <div class="wa-stack wa-gap-s">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--wa-space-m);">
+                    <h3 class="wa-heading-m" th:text="${orderDetails.orderName}"></h3>
+                    <wa-badge variant="neutral" th:text="${orderDetails.fulfillmentStatus != null ? orderDetails.fulfillmentStatus : 'UNFULFILLED'}"></wa-badge>
+                </div>
+                <div class="wa-stack wa-gap-2xs" style="color: var(--wa-color-gray-60);">
+                    <span th:text="${'Order number: #' + orderDetails.orderNumber}"></span>
+                    <span th:text="${'Created at: ' + #temporals.format(orderDetails.createdAt, 'yyyy-MM-dd HH:mm z')}"/>
+                    <span th:if="${orderDetails.customerName != null}" th:text="${'Customer: ' + orderDetails.customerName}"></span>
+                    <span th:if="${orderDetails.customerEmail != null}" th:text="${'Email: ' + orderDetails.customerEmail}"></span>
+                    <span th:if="${orderDetails.totalPrice != null}" th:text="${'Total: ' + #numbers.formatDecimal(orderDetails.totalPrice.amount, 1, 2) + ' ' + orderDetails.totalPrice.currencyCode}"></span>
+                </div>
+            </div>
+        </wa-card>
+        <wa-card th:if="${orderDetails.shippingAddress != null}">
+            <div class="wa-stack wa-gap-xs">
+                <h4 class="wa-heading-s">Shipping address</h4>
+                <div class="wa-stack wa-gap-2xs" style="color: var(--wa-color-gray-60);">
+                    <span th:if="${orderDetails.shippingAddress.name != null}" th:text="${orderDetails.shippingAddress.name}"></span>
+                    <span th:if="${orderDetails.shippingAddress.addressLineOne != null}" th:text="${orderDetails.shippingAddress.addressLineOne}"></span>
+                    <span th:if="${orderDetails.shippingAddress.addressLineTwo != null}" th:text="${orderDetails.shippingAddress.addressLineTwo}"></span>
+                    <div class="wa-cluster wa-gap-2xs wa-wrap" style="color: var(--wa-color-gray-60);">
+                        <span th:if="${orderDetails.shippingAddress.city != null}" th:text="${orderDetails.shippingAddress.city}"></span>
+                        <span th:if="${orderDetails.shippingAddress.province != null}" th:text="${orderDetails.shippingAddress.province}"></span>
+                        <span th:if="${orderDetails.shippingAddress.postalCode != null}" th:text="${orderDetails.shippingAddress.postalCode}"></span>
+                        <span th:if="${orderDetails.shippingAddress.country != null}" th:text="${orderDetails.shippingAddress.country}"></span>
+                    </div>
+                    <span th:if="${orderDetails.shippingAddress.phone != null}" th:text="${'Phone: ' + orderDetails.shippingAddress.phone}"></span>
+                </div>
+            </div>
+        </wa-card>
+        <wa-card>
+            <div class="wa-stack wa-gap-s">
+                <h4 class="wa-heading-s">Line items</h4>
+                <div class="wa-stack wa-gap-s">
+                    <div th:if="${#lists.isEmpty(orderDetails.lineItems)}" style="color: var(--wa-color-gray-60);">No line items returned.</div>
+                    <div th:each="lineItem : ${orderDetails.lineItems}" style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--wa-space-m);">
+                        <div class="wa-stack wa-gap-2xs">
+                            <strong th:text="${lineItem.title}"/>
+                            <span th:if="${lineItem.sku != null}" style="color: var(--wa-color-gray-60);" th:text="${'SKU: ' + lineItem.sku}"></span>
+                        </div>
+                        <div class="wa-stack wa-gap-2xs" style="text-align: right; color: var(--wa-color-gray-60);">
+                            <span th:text="${'Qty: ' + lineItem.quantity}"/>
+                            <span th:if="${lineItem.totalPrice != null}" th:text="${#numbers.formatDecimal(lineItem.totalPrice.amount, 1, 2) + ' ' + lineItem.totalPrice.currencyCode}"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </wa-card>
+        <wa-card th:if="${!#lists.isEmpty(orderDetails.fulfillments)}">
+            <div class="wa-stack wa-gap-s">
+                <h4 class="wa-heading-s">Fulfillments</h4>
+                <div class="wa-stack wa-gap-s">
+                    <div th:each="fulfillment : ${orderDetails.fulfillments}" class="wa-stack wa-gap-2xs" style="padding: var(--wa-space-s); background-color: var(--wa-color-gray-90); border-radius: var(--wa-border-radius-m);">
+                        <span th:text="${#temporals.format(fulfillment.createdAt, 'yyyy-MM-dd HH:mm z')}"></span>
+                        <span th:if="${fulfillment.status != null}" style="color: var(--wa-color-gray-60);" th:text="${'Status: ' + fulfillment.status}"></span>
+                        <div class="wa-stack wa-gap-2xs" th:if="${!#lists.isEmpty(fulfillment.trackingNumbers)}">
+                            <span style="color: var(--wa-color-gray-60);">Tracking numbers</span>
+                            <div class="wa-cluster wa-gap-xs wa-wrap">
+                                <wa-badge variant="neutral" th:each="number : ${fulfillment.trackingNumbers}" th:text="${number}"></wa-badge>
+                            </div>
+                        </div>
+                        <div class="wa-stack wa-gap-2xs" th:if="${!#lists.isEmpty(fulfillment.trackingUrls)}">
+                            <span style="color: var(--wa-color-gray-60);">Tracking links</span>
+                            <div class="wa-stack wa-gap-2xs">
+                                <a th:each="url : ${fulfillment.trackingUrls}"
+                                   th:href="${url}"
+                                   target="_blank"
+                                   style="color: var(--wa-color-brand-50); text-decoration: none;">
+                                    <span th:text="${url}"></span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </wa-card>
+    </div>
+</div>

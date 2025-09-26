@@ -1,0 +1,55 @@
+query GetOrderByName($query: String!) {
+  orders(first: 1, query: $query) {
+    edges {
+      node {
+        id
+        name
+        createdAt
+        email
+        displayFulfillmentStatus
+        currentTotalPriceSet {
+          shopMoney {
+            amount
+            currencyCode
+          }
+        }
+        shippingAddress {
+          firstName
+          lastName
+          address1
+          address2
+          city
+          province
+          country
+          zip
+          phone
+        }
+        customer {
+          displayName
+        }
+        lineItems(first: 25) {
+          nodes {
+            id
+            title
+            sku
+            quantity
+            discountedTotalSet {
+              shopMoney {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+        fulfillments(first: 10) {
+          createdAt
+          displayStatus
+          trackingInfo {
+            number
+            url
+          }
+        }
+      }
+    }
+  }
+}
