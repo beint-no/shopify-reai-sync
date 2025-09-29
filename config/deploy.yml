@@ -1,0 +1,42 @@
+service: shopify
+image: reai210/shopify
+
+# set app to point to server IP in .ssh/config if you want to login with ssh app to deploy server
+servers:
+  web:
+    - 158.39.77.68 # https://dashboard.nrec.no/dashboard/project/instances/28b4d236-fdd9-49d3-a816-a2bbd3c61fac/
+
+# Enable SSL auto certification via Let's Encrypt (and allow for multiple apps on one server).
+# If using something like Cloudflare, it is recommended to set encryption mode
+# in Cloudflare's SSL/TLS setting to "Full" to enable end-to-end encryption.
+# I got "too many redirects" if SSL/TLS was set to "Flexible", changed to "Full":
+# https://dash.cloudflare.com/d7c5a90b75a693cc738d69f92808f451/teoriprove.com/ssl-tls
+proxy:
+  ssl: true
+  host: shopify.reai.no
+  # kamal-proxy connects to your container over port 80, use `app_port` to specify a different port.
+  app_port: 8083
+
+registry:
+  username: reai210
+  password:
+    - REAI_DOCKER_REGISTRY_TOKEN
+
+# https://github.com/basecamp/kamal/discussions/549
+# The "remote" will be a buildx instance running locally on both amd64 and arm64.
+builder:
+  arch:
+    - amd64
+  # failed to compute cache key: https://github.com/basecamp/kamal/pull/700
+  context: "."
+
+
+# Use a different ssh user than root
+ssh:
+  user: ubuntu
+
+# See here: https://kamal-deploy.org/docs/configuration/environment-variables/
+env:
+  secret:
+    - SHOPIFY_API_KEY
+    - SHOPIFY_API_SECRET
