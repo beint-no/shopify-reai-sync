@@ -16,6 +16,8 @@ proxy:
   host: shopify.reai.no
   # kamal-proxy connects to your container over port 80, use `app_port` to specify a different port.
   app_port: 8083
+  healthcheck:
+    path: /actuator/health
 
 registry:
   username: reai210
