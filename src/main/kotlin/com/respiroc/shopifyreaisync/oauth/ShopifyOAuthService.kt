@@ -16,6 +16,7 @@ import java.security.MessageDigest
 import java.time.Instant
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import java.util.HexFormat
 
 @Service
 class ShopifyOAuthService(
@@ -94,17 +95,19 @@ class ShopifyOAuthService(
     }
 
     private fun isValidHmac(parameters: Map<String, String>, hmac: String): Boolean {
-        val mac = Mac.getInstance("HmacSHA256")
-        val key = SecretKeySpec(shopifyProperties.apiSecret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256")
-        mac.init(key)
-        val sortedParameters = parameters
-            .filterKeys { it != "hmac" && it != "signature" }
-            .toSortedMap()
-            .entries
-            .joinToString("&") { "${it.key}=${it.value}" }
-        val computedDigest = mac.doFinal(sortedParameters.toByteArray(StandardCharsets.UTF_8))
-        val providedDigest = hexToBytes(hmac)
-        return MessageDigest.isEqual(computedDigest, providedDigest)
+        val mac = Mac.getInstance("HmacSHA256").apply {
+            init(SecretKeySpec(shopifyProperties.apiSecret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
+        }
+
+        val message = parameters
+            .asSequence()
+            .filter { (k, _) -> k != "hmac" && k != "signature" }
+            .sortedBy { it.key }
+            .joinToString("&") { (k, v) -> "$k=$v" }
+
+        val computed = mac.doFinal(message.toByteArray(StandardCharsets.UTF_8))
+        val provided = HexFormat.of().parseHex(hmac)
+        return MessageDigest.isEqual(computed, provided)
     }
 
     fun extractParameters(request: HttpServletRequest): Map<String, String> {

@@ -3,17 +3,6 @@ schema {
     mutation: Mutation
 }
 
-"""Marks an element of a Gra
-apollo client:download-schema types/download.graphql \
---endpoint=https://famme-international.myshopify.com/admin/api/2025-07/graphql.json
-A config file failed to load with options: {"type":"client"}.
-The error was: JSONError: JSON Error in /Users/sayid25/famme/package.json:
-Unexpected token '﻿', "﻿{  "web-"... is not valid JSON
-at loadConfig (/opt/homebrew/lib/node_modules/apollo/node_modules/apollo-language-server/lib/config/loadConfig.js:42:34)
-at async SchemaDownload.createConfig (/opt/homebrew/lib/node_modules/apollo/lib/Command.js:76:24)
-at async SchemaDownload.init (/opt/homebrew/lib/node_modules/apollo/lib/Command.js:61:24)
-at async SchemaDownload._run (/opt/homebrew/lib/node_modules/apollo/node_modules/@oclif/command/lib/command.js:42:13)
-›   Error: A config failed to load, so the command couldn't be runphQL schema as having restricted access."""
 directive @accessRestricted(
     """Explains the reason around this restriction"""
     reason: String = null
