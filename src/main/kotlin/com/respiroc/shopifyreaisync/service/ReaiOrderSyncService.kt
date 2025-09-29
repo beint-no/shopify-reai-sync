@@ -178,7 +178,7 @@ class ReaiOrderSyncService(
         if (country.isNullOrBlank()) return null
         val normalized = country.normalize()
         Locale.getISOCountries().forEach { code ->
-            val locale = Locale("", code)
+            val locale = Locale.Builder().setRegion(code).build()
             val candidates = listOf(locale.displayCountry, locale.getDisplayCountry(Locale.ENGLISH))
             if (candidates.any { it.normalize() == normalized }) return code
         }
