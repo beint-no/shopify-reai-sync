@@ -1,5 +1,5 @@
-query GetOrderByName($query: String!) {
-  orders(first: 1, query: $query) {
+query GetOrderByName($orderName: String!) {
+  orders(first: 1, query: $orderName) {
     edges {
       node {
         id
@@ -47,6 +47,13 @@ query GetOrderByName($query: String!) {
           trackingInfo {
             number
             url
+          }
+        }
+        paymentTerms {
+          paymentSchedules(first: 1) {
+            nodes {
+              dueAt
+            }
           }
         }
       }

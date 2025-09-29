@@ -24,15 +24,52 @@
         </wa-card>
     </div>
     <div th:if="${orderDetails != null}" class="wa-stack wa-gap-l">
+        <wa-card style="padding: var(--wa-space-l);">
+            <div class="wa-stack wa-gap-m">
+                <div class="wa-stack wa-gap-2xs">
+                    <h4 class="wa-heading-s">Sync to ReAI</h4>
+                    <p style="color: var(--wa-color-gray-60);">Create an invoice in ReAI using the Shopify order data.</p>
+                </div>
+                <div th:if="${reaiConnectionConfigured}">
+                    <form class="wa-cluster wa-gap-s wa-wrap"
+                          th:attr="hx-post=@{/orders/sync-reai}"
+                          hx-target="#orderResult"
+                          hx-swap="innerHTML">
+                        <input type="hidden" name="shop" th:value="${selectedShop}">
+                        <input type="hidden" name="orderNumber" th:value="${orderNumber}">
+                        <input type="hidden" name="tenantId" th:value="${tenantId}">
+                        <wa-button variant="brand"
+                                   type="submit"
+                                   th:if="${reaiSyncStatus == null}">
+                            <span th:text="${reaiSyncStatus != null ? 'Synced with ReAI' : 'Sync order to ReAI'}"></span>
+                        </wa-button>
+                    </form>
+                </div>
+                <div th:if="${!reaiConnectionConfigured}" style="color: var(--wa-color-warning-60);">
+                    Open this integration from ReAI to refresh the access token before syncing.
+                </div>
+                <wa-card th:if="${reaiSyncStatus != null}"
+                         style="background-color: var(--wa-color-success-95); border-left: var(--wa-border-width-m) solid var(--wa-color-success-50);">
+                    <div class="wa-stack wa-gap-2xs">
+                        <strong style="color: var(--wa-color-success-50);"
+                                th:text="${reaiSyncStatus.alreadySynced ? 'Already synced' : 'Sync completed'}"></strong>
+                        <span style="color: var(--wa-color-gray-60);"
+                              th:text="${'Invoice #' + (reaiSyncStatus.reaiInvoiceNumber != null ? reaiSyncStatus.reaiInvoiceNumber : reaiSyncStatus.reaiInvoiceId) + ' · Order ID ' + (reaiSyncStatus.reaiOrderId != null ? reaiSyncStatus.reaiOrderId : 'N/A')}"></span>
+                        <span style="color: var(--wa-color-gray-50);"
+                              th:text="${'Last synced at ' + #temporals.format(reaiSyncStatus.syncedAt, 'yyyy-MM-dd HH:mm z')}"></span>
+                    </div>
+                </wa-card>
+            </div>
+        </wa-card>
         <wa-card>
             <div class="wa-stack wa-gap-s">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--wa-space-m);">
                     <h3 class="wa-heading-m" th:text="${orderDetails.orderName}"></h3>
-                    <wa-badge variant="neutral" th:text="${orderDetails.fulfillmentStatus != null ? orderDetails.fulfillmentStatus : 'UNFULFILLED'}"></wa-badge>
                 </div>
                 <div class="wa-stack wa-gap-2xs" style="color: var(--wa-color-gray-60);">
                     <span th:text="${'Order number: #' + orderDetails.orderNumber}"></span>
                     <span th:text="${'Created at: ' + #temporals.format(orderDetails.createdAt, 'yyyy-MM-dd HH:mm z')}"/>
+                    <span th:if="${orderDetails.dueDate != null}" th:text="${'Due date: ' + #temporals.format(orderDetails.dueDate, 'yyyy-MM-dd HH:mm z')}"/>
                     <span th:if="${orderDetails.customerName != null}" th:text="${'Customer: ' + orderDetails.customerName}"></span>
                     <span th:if="${orderDetails.customerEmail != null}" th:text="${'Email: ' + orderDetails.customerEmail}"></span>
                     <span th:if="${orderDetails.totalPrice != null}" th:text="${'Total: ' + #numbers.formatDecimal(orderDetails.totalPrice.amount, 1, 2) + ' ' + orderDetails.totalPrice.currencyCode}"></span>

@@ -17,10 +17,16 @@ class ShopifyInstallationService(
     }
 
     @Transactional
-    fun persistInstallation(shopDomain: String, accessToken: String, scopes: String): ShopifyInstallation {
+    fun persistInstallation(shopDomain: String, accessToken: String, scopes: String, tenantId: Long?): ShopifyInstallation {
         val normalizedDomain = shopDomain.lowercase()
-        val existingInstallation = shopifyInstallationRepository.findByShopDomain(normalizedDomain)
         val currentTimestamp = OffsetDateTime.now(ZoneOffset.UTC)
+
+        val existingInstallation = if (tenantId != null) {
+            shopifyInstallationRepository.findByShopDomainAndReaiConnectionTenantId(normalizedDomain, tenantId)
+        } else {
+            shopifyInstallationRepository.findByShopDomain(normalizedDomain)
+        }
+
         return if (existingInstallation != null) {
             existingInstallation.accessToken = accessToken
             existingInstallation.scopes = scopes
@@ -42,4 +48,20 @@ class ShopifyInstallationService(
     fun findAll(): List<ShopifyInstallation> {
         return shopifyInstallationRepository.findAll().sortedBy { it.shopDomain }
     }
+
+    @Transactional(readOnly = true)
+    fun findByReaiConnectionTenantId(tenantId: Long): List<ShopifyInstallation> {
+        return shopifyInstallationRepository.findByReaiConnectionTenantId(tenantId)
+    }
+
+    @Transactional(readOnly = true)
+    fun findByShopDomainAndTenantId(shopDomain: String, tenantId: Long): ShopifyInstallation? {
+        return shopifyInstallationRepository.findByShopDomainAndReaiConnectionTenantId(shopDomain.lowercase(), tenantId)
+    }
+
+    @Transactional
+    fun deleteInstallation(installation: ShopifyInstallation) {
+        shopifyInstallationRepository.delete(installation)
+    }
+
 }

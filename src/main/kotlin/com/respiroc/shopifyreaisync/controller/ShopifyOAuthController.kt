@@ -17,8 +17,11 @@ class ShopifyOAuthController(
     private val shopifyOAuthService: ShopifyOAuthService
 ) {
     @GetMapping("/install")
-    fun install(@RequestParam("shop") shopDomain: String): String {
-        val redirectUri = shopifyOAuthService.buildInstallationRedirect(shopDomain)
+    fun install(
+        @RequestParam("shop") shopDomain: String,
+        @RequestParam(value = "tenant_id", required = false) tenantId: Long?
+    ): String {
+        val redirectUri = shopifyOAuthService.buildInstallationRedirect(shopDomain, tenantId)
         return "redirect:${redirectUri}"
     }
 

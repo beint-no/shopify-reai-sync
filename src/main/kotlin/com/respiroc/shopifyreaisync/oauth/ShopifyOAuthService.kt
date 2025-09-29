@@ -3,6 +3,7 @@ package com.respiroc.shopifyreaisync.oauth
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.respiroc.shopifyreaisync.config.ShopifyProperties
 import com.respiroc.shopifyreaisync.model.ShopifyInstallation
+import com.respiroc.shopifyreaisync.service.ReaiConnectionService
 import com.respiroc.shopifyreaisync.service.ShopifyInstallationService
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.MediaType
@@ -21,11 +22,12 @@ class ShopifyOAuthService(
     private val shopifyProperties: ShopifyProperties,
     private val shopifyInstallationService: ShopifyInstallationService,
     private val shopifyOAuthStateStore: ShopifyOAuthStateStore,
-    private val restClientBuilder: RestClient.Builder
+    private val restClientBuilder: RestClient.Builder,
+    private val reaiConnectionService: ReaiConnectionService
 ) {
-    fun buildInstallationRedirect(shopDomain: String): URI {
+    fun buildInstallationRedirect(shopDomain: String, tenantId: Long?): URI {
         val normalizedDomain = shopDomain.lowercase()
-        val state = shopifyOAuthStateStore.issueState(normalizedDomain)
+        val state = shopifyOAuthStateStore.issueState(normalizedDomain, tenantId)
         val encodedRedirectUri = URLEncoder.encode("${shopifyProperties.appBaseUrl}/oauth/callback", StandardCharsets.UTF_8)
         val authorizationUrl = StringBuilder()
         authorizationUrl.append("https://")
@@ -46,9 +48,11 @@ class ShopifyOAuthService(
         val hmac = parameters["hmac"] ?: throw IllegalArgumentException("Missing hmac")
         val shopDomain = parameters["shop"] ?: throw IllegalArgumentException("Missing shop")
         val state = parameters["state"] ?: throw IllegalArgumentException("Missing state")
-        if (!shopifyOAuthStateStore.consumeState(state, shopDomain)) {
-            throw IllegalArgumentException("Invalid state")
-        }
+
+        val storedState = shopifyOAuthStateStore.consumeState(state, shopDomain)
+            ?: throw IllegalArgumentException("Invalid state or state expired for shop: $shopDomain")
+
+
         if (!isValidHmac(parameters, hmac)) {
             throw IllegalArgumentException("Invalid hmac")
         }
@@ -58,11 +62,19 @@ class ShopifyOAuthService(
         if (Instant.ofEpochSecond(timestamp).isAfter(Instant.now().plusSeconds(300))) {
             throw IllegalArgumentException("Callback timestamp is invalid")
         }
-        return shopifyInstallationService.persistInstallation(
+        val installation = shopifyInstallationService.persistInstallation(
             shopDomain = shopDomain,
             accessToken = tokenResponse.accessToken,
-            scopes = tokenResponse.scopes
+            scopes = tokenResponse.scopes,
+            tenantId = storedState.tenantId
         )
+
+        val tenantId = storedState.tenantId
+        if (tenantId != null) {
+            reaiConnectionService.linkShopifyInstallation(tenantId, installation)
+        }
+
+        return installation
     }
 
     private fun exchangeCodeForToken(shopDomain: String, code: String): AccessTokenResponse {

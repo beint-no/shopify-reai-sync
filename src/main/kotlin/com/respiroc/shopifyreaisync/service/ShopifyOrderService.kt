@@ -4,6 +4,7 @@ import com.apollographql.apollo.ApolloClient
 import com.respiroc.shopifyreaisync.config.ShopifyProperties
 import com.respiroc.shopifyreaisync.graphql.GetOrderByNameQuery
 import kotlinx.coroutines.runBlocking
+import org.hibernate.annotations.TenantId
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.OffsetDateTime
@@ -14,8 +15,8 @@ class ShopifyOrderService(
     private val shopifyInstallationService: ShopifyInstallationService,
     private val shopifyProperties: ShopifyProperties
 ) {
-    fun fetchOrderByNumber(shopDomain: String, rawOrderNumber: String): ShopifyOrderDetails {
-        val installation = shopifyInstallationService.findByShopDomain(shopDomain)
+    fun fetchOrderByNumber(shopDomain: String, rawOrderNumber: String,tenantId: Long): ShopifyOrderDetails {
+        val installation = shopifyInstallationService.findByShopDomainAndTenantId(shopDomain,tenantId)
             ?: throw IllegalArgumentException("Shop installation not found for $shopDomain")
         val sanitizedNumber = rawOrderNumber.trim().removePrefix("#")
         if (sanitizedNumber.isBlank()) {
@@ -88,7 +89,8 @@ class ShopifyOrderService(
             totalPrice = orderTotal,
             shippingAddress = shippingAddress,
             lineItems = lineItems,
-            fulfillments = fulfillments
+            fulfillments = fulfillments,
+            dueDate = orderNode.paymentTerms?.paymentSchedules?.nodes?.firstOrNull()?.dueAt?.asOffsetDateTime()
         )
     }
 
@@ -127,7 +129,8 @@ data class ShopifyOrderDetails(
     val totalPrice: MoneyAmount?,
     val shippingAddress: OrderShippingAddress?,
     val lineItems: List<OrderLineItem>,
-    val fulfillments: List<FulfillmentSummary>
+    val fulfillments: List<FulfillmentSummary>,
+    val dueDate: OffsetDateTime?
 )
 
 data class MoneyAmount(

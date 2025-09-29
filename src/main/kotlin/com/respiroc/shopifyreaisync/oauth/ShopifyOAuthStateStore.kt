@@ -14,13 +14,14 @@ class ShopifyOAuthStateStore {
     private val secureRandom = SecureRandom()
     private val stateLifetime = Duration.ofMinutes(15)
 
-    fun issueState(shopDomain: String): String {
+    fun issueState(shopDomain: String, tenantId: Long?): String {
         val randomBytes = ByteArray(24)
         secureRandom.nextBytes(randomBytes)
         val stateValue = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes)
         val issuedState = ShopifyOAuthState(
             value = stateValue,
             shopDomain = shopDomain.lowercase(),
+            tenantId = tenantId,
             createdAt = OffsetDateTime.now(ZoneOffset.UTC)
         )
         stateCache[stateValue] = issuedState
@@ -28,10 +29,17 @@ class ShopifyOAuthStateStore {
         return stateValue
     }
 
-    fun consumeState(value: String, shopDomain: String): Boolean {
+    fun consumeState(value: String, shopDomain: String): ShopifyOAuthState? {
         evictExpiredStates()
-        val storedState = stateCache.remove(value) ?: return false
-        return storedState.shopDomain == shopDomain.lowercase()
+        val storedState = stateCache.remove(value)
+        if (storedState == null) {
+            return null
+        }
+        return if (storedState.shopDomain == shopDomain.lowercase()) {
+            storedState
+        } else {
+            null
+        }
     }
 
     private fun evictExpiredStates() {
@@ -39,9 +47,10 @@ class ShopifyOAuthStateStore {
         stateCache.entries.removeIf { now.isAfter(it.value.createdAt.plus(stateLifetime)) }
     }
 
-    private data class ShopifyOAuthState(
+    data class ShopifyOAuthState(
         val value: String,
         val shopDomain: String,
+        val tenantId: Long?,
         val createdAt: OffsetDateTime
     )
 }
