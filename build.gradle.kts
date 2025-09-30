@@ -29,6 +29,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.apollographql.apollo:apollo-runtime:4.3.3")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
 
     runtimeOnly("org.postgresql:postgresql")
 }
