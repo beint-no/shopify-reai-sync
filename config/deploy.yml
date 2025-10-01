@@ -40,5 +40,8 @@ ssh:
 # See here: https://kamal-deploy.org/docs/configuration/environment-variables/
 env:
   secret:
+    - DB_URL_PROD
+    - DB_USERNAME_PROD
+    - DB_PASSWORD_PROD
     - SHOPIFY_API_KEY
     - SHOPIFY_API_SECRET
