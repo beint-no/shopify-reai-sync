@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.Locale
 
 @Controller
 @RequestMapping("/oauth")
@@ -21,7 +22,8 @@ class ShopifyOAuthController(
         @RequestParam("shop") shopDomain: String,
         @RequestParam(value = "tenant_id", required = false) tenantId: Long?
     ): String {
-        val redirectUri = shopifyOAuthService.buildInstallationRedirect(shopDomain, tenantId)
+        val normalizedShopDomain = normalizeShopDomain(shopDomain)
+        val redirectUri = shopifyOAuthService.buildInstallationRedirect(normalizedShopDomain, tenantId)
         return "redirect:${redirectUri}"
     }
 
@@ -38,5 +40,24 @@ class ShopifyOAuthController(
     fun handleCallbackErrors(exception: RuntimeException): String {
         val encodedMessage = URLEncoder.encode(exception.message ?: "OAuth error", StandardCharsets.UTF_8)
         return "redirect:/?error=${encodedMessage}"
+    }
+
+    private fun normalizeShopDomain(input: String): String {
+        var cleaned = input.trim()
+        require(cleaned.isNotEmpty()) { "Shop name is required" }
+        cleaned = cleaned.lowercase(Locale.US)
+        cleaned = cleaned.removePrefix("https://")
+        cleaned = cleaned.removePrefix("http://")
+        if (cleaned.startsWith("www.")) {
+            cleaned = cleaned.removePrefix("www.")
+        }
+        val name = cleaned.removeSuffix(".myshopify.com")
+        require(name.isNotEmpty()) { "Shop name is required" }
+        require(shopNamePattern.matches(name)) { "Invalid shop name" }
+        return "$name.myshopify.com"
+    }
+
+    companion object {
+        private val shopNamePattern = Regex("^[a-z0-9][a-z0-9-]*$")
     }
 }
