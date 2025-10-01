@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: shopify-reai-sync
+  datasource:
+    url: ${DB_URL_PROD}
+    username: ${DB_USERNAME_PROD}
+    password: ${DB_PASSWORD_PROD}
+
+shopify:
+  api-key: ${SHOPIFY_API_KEY}
+  api-secret: ${SHOPIFY_API_SECRET}
+  app-base-url: https://shopify.reai.no
+
+reai:
+  api-base-url: https://app.reai.no/api
+  token-url: https://app.reai.no/oauth2/token
+
+server:
+  port: 8083
