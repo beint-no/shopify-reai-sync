@@ -7,6 +7,7 @@ import com.respiroc.shopifyreaisync.service.OrderNotFoundException
 import com.respiroc.shopifyreaisync.service.ReaiConnectionService
 import com.respiroc.shopifyreaisync.service.ReaiOrderSyncService
 import com.respiroc.shopifyreaisync.service.ReaiSyncResult
+import com.respiroc.shopifyreaisync.service.ReaiTokenClient
 import com.respiroc.shopifyreaisync.service.ShopifyOrderService
 import com.respiroc.shopifyreaisync.service.ShopifyInstallationService
 import jakarta.servlet.http.HttpServletRequest
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import java.time.OffsetDateTime
-import kotlin.math.log
 
 @Controller
 class OrderSearchController(
@@ -27,8 +27,9 @@ class OrderSearchController(
     private val shopifyOrderService: ShopifyOrderService,
     private val reaiConnectionService: ReaiConnectionService,
     private val reaiOrderSyncService: ReaiOrderSyncService,
-    private val cookieService: CookieService
-    ) {
+    private val cookieService: CookieService,
+    private val reaiTokenClient: ReaiTokenClient
+) {
     @GetMapping("/")
     fun home(
         @RequestParam(value = "shop", required = false) shopDomain: String?,
@@ -36,6 +37,9 @@ class OrderSearchController(
         @RequestParam(value = "error", required = false) errorMessage: String?,
         @RequestParam(value = "access_token", required = false) accessTokenParam: String?,
         @RequestParam(value = "reaiConnected", required = false) reaiConnectedFlag: String?,
+        @RequestParam(value = "client_id", required = false) clientIdParam: String?,
+        @RequestParam(value = "client_secret", required = false) clientSecretParam: String?,
+        @RequestParam(value = "scope", required = false) scopeParam: String?,
         model: Model,
         request: HttpServletRequest,
         response: HttpServletResponse
@@ -44,19 +48,39 @@ class OrderSearchController(
         var reaiConnection: ReaiConnection? = null
         var reaiConnected = false
         var currentTenantId: Long? = null
-        var currentAccessToken: String? = null
+        val incomingAccessToken = when {
+            !accessTokenParam.isNullOrBlank() -> accessTokenParam
+            !clientIdParam.isNullOrBlank() && !clientSecretParam.isNullOrBlank() -> {
+                val sanitizedClientId = clientIdParam.orEmpty().trim()
+                val sanitizedClientSecret = clientSecretParam.orEmpty().trim()
+                if (sanitizedClientId.isEmpty() || sanitizedClientSecret.isEmpty()) {
+                    null
+                } else {
+                    val scopeTokens = scopeParam
+                        ?.split(',', ' ')
+                        ?.map { it.trim() }
+                        ?.filter { it.isNotEmpty() }
+                        ?: emptyList()
+                    try {
+                        reaiTokenClient.exchangeClientCredentials(sanitizedClientId, sanitizedClientSecret, scopeTokens)
+                    } catch (ignored: Exception) {
+                        null
+                    }
+                }
+            }
+            else -> null
+        }
 
-        if (!accessTokenParam.isNullOrBlank()) {
+        if (!incomingAccessToken.isNullOrBlank()) {
             try {
-                reaiConnection = reaiConnectionService.storeAccessToken(accessTokenParam, normalizedShop)
+                reaiConnection = reaiConnectionService.storeAccessToken(incomingAccessToken, normalizedShop)
                 currentTenantId = reaiConnection.tenantId
-                currentAccessToken = accessTokenParam
                 reaiConnected = reaiConnectionService.hasValidToken(reaiConnection)
                 if (reaiConnected) {
-                    currentAccessToken?.let { cookieService.setCookie(request, response, "reai_access_token", it, 3600, true, "Lax") }
+                    cookieService.setCookie(request, response, "reai_access_token", incomingAccessToken, 3600, true, "Lax")
                     RequestContext.setTenantId(currentTenantId)
                 }
-            } catch (e: Exception) {
+            } catch (ignored: Exception) {
             }
         } else {
             val cookieAccessToken = cookieService.getCookie(request, "reai_access_token")
@@ -67,7 +91,7 @@ class OrderSearchController(
                     currentTenantId = reaiConnection.tenantId
                     RequestContext.setTenantId(currentTenantId)
                     reaiConnected = reaiConnectionService.hasValidToken(reaiConnection)
-                } catch (e: Exception) {
+                } catch (ignored: Exception) {
                     cookieService.clearCookie(response, "reai_access_token")
                 }
             }
