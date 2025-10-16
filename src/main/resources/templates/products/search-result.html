@@ -1,0 +1,122 @@
+<div th:fragment="productResult">
+    <div th:if="${validationError != null}">
+        <wa-card style="border-left: var(--wa-border-width-m) solid var(--wa-color-warning-60);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-warning-60);">Validation issue</strong>
+                <span th:text="${validationError}"></span>
+            </div>
+        </wa-card>
+    </div>
+    <div th:if="${technicalError != null}">
+        <wa-card style="border-left: var(--wa-border-width-m) solid var(--wa-color-danger-60);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-danger-60);">Unable to sync product</strong>
+                <span th:text="${technicalError}"></span>
+            </div>
+        </wa-card>
+    </div>
+    <div th:if="${productNotFound != null}">
+        <wa-card style="border-left: var(--wa-border-width-m) solid var(--wa-color-warning-50);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-warning-50);">Product not found</strong>
+                <span th:text="${productNotFound}"></span>
+            </div>
+        </wa-card>
+    </div>
+    <div th:if="${productResults != null && #lists.isEmpty(productResults)}" style="color: var(--wa-color-gray-60);">
+        No products matched your search.
+    </div>
+    <div class="wa-stack wa-gap-l" th:if="${productResults != null && !#lists.isEmpty(productResults)}">
+        <wa-card th:each="result : ${productResults}" style="padding: var(--wa-space-l);">
+            <div class="wa-stack wa-gap-m">
+                <div class="wa-stack wa-gap-2xs">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--wa-space-m);">
+                        <h3 class="wa-heading-m" th:text="${result.product.title}"></h3>
+                        <wa-badge th:if="${result.syncRecord != null}"
+                                  variant="success"
+                                  th:text="${'Synced · ' + #temporals.format(result.syncRecord.syncedAt, 'yyyy-MM-dd HH:mm z')}">
+                        </wa-badge>
+                    </div>
+                    <p th:if="${result.product.description != null and result.product.description.trim().length() > 0}"
+                       style="color: var(--wa-color-gray-60);"
+                       th:text="${result.product.description}"></p>
+                </div>
+                <div class="wa-stack wa-gap-s">
+                    <div th:if="${reaiConnectionConfigured}">
+                        <form class="wa-cluster wa-gap-s wa-wrap"
+                              th:attr="hx-post=@{/products/sync}"
+                              hx-target="#productResult"
+                              hx-swap="innerHTML"
+                              hx-indicator="#productLoadingIndicator">
+                            <input type="hidden" name="shop" th:value="${selectedShop}" />
+                            <input type="hidden" name="tenant_id" th:value="${tenantId}" />
+                            <input type="hidden" name="productGid" th:value="${result.product.productGid}" />
+                            <input type="hidden" name="productName" th:value="${productSearchTerm}" />
+                            <wa-button variant="brand"
+                                       type="submit"
+                                       th:attr="disabled=${!result.syncEnabled}">Sync product to ReAI</wa-button>
+                        </form>
+                        <span th:if="${result.syncRecord != null and !result.syncEnabled}"
+                              style="color: var(--wa-color-gray-60); font-size: var(--wa-font-size-s);">
+    No changes detected since last sync.
+</span>
+
+                        <span th:unless="${result.syncRecord != null and !result.syncEnabled}"
+                              style="color: var(--wa-color-gray-60); font-size: var(--wa-font-size-s);">
+    Changes detected since last sync.
+</span>
+
+                    </div>
+                    <div th:if="${!reaiConnectionConfigured}" style="color: var(--wa-color-warning-60);">
+                        Open this integration from ReAI to refresh the access token before syncing.
+                    </div>
+                    <wa-card th:if="${recentProductSync != null && recentProductSync.productDetails.productGid == result.product.productGid}"
+                             style="background-color: var(--wa-color-success-95); border-left: var(--wa-border-width-m) solid var(--wa-color-success-50);">
+                        <div class="wa-stack wa-gap-2xs">
+                            <strong style="color: var(--wa-color-success-50);">Product synced</strong>
+                            <span style="color: var(--wa-color-gray-60);"
+                                  th:text="${'ReAI product ID ' + recentProductSync.status.reaiProductId}"></span>
+                        </div>
+                    </wa-card>
+                </div>
+                <div class="wa-stack wa-gap-s">
+                    <h4 class="wa-heading-s">Variants</h4>
+                    <span style="color: var(--wa-color-gray-60); font-size: var(--wa-font-size-s);">Only variants with a SKU are sent to ReAI.</span>
+                    <div th:if="${#lists.isEmpty(result.product.variants)}" style="color: var(--wa-color-gray-60);">
+                        No variants returned from Shopify.
+                    </div>
+                   <div class="wa-stack wa-gap-s" th:if="${!#lists.isEmpty(result.product.variants)}">
+                       <div th:each="variant : ${result.product.variants}"
+                             style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 160px); gap: var(--wa-space-m); align-items: start;">
+                            <div class="wa-stack wa-gap-2xs">
+                                <strong th:text="${variant.title}"></strong>
+                                <span th:if="${variant.sku != null and variant.sku.trim().length() > 0}"
+                                      style="color: var(--wa-color-gray-60);"
+                                      th:text="${'SKU: ' + variant.sku}"></span>
+                                <span th:if="${variant.sku == null or variant.sku.trim().length() == 0}"
+                                      style="color: var(--wa-color-warning-60);">
+                                    SKU missing
+                                </span>
+                                <span th:if="${variant.barcode != null and variant.barcode.trim().length() > 0}"
+                                      style="color: var(--wa-color-gray-60);"
+                                      th:text="${'Barcode: ' + variant.barcode}"></span>
+                                <span th:if="${variant.inventoryQuantity != null}" style="color: var(--wa-color-gray-60);"
+                                      th:text="${'Inventory: ' + variant.inventoryQuantity}"></span>
+                                <span th:if="${variant.warehouseName != null}" style="color: var(--wa-color-gray-60);"
+                                      th:text="${'Warehouse: ' + variant.warehouseName}"></span>
+                            </div>
+                            <div class="wa-stack wa-gap-2xs" style="text-align: right; color: var(--wa-color-gray-60);">
+                                <span th:if="${variant.sellingPrice != null}"
+                                      th:text="${'Price: ' + #numbers.formatDecimal(variant.sellingPrice.amount, 1, 2) + ' ' + variant.sellingPrice.currencyCode}"></span>
+                                <span th:if="${variant.sellingPrice == null}"
+                                      style="color: var(--wa-color-gray-50);">Price not available</span>
+                                <span th:if="${variant.costPrice != null}"
+                                      th:text="${'Cost: ' + #numbers.formatDecimal(variant.costPrice.amount, 1, 2) + ' ' + variant.costPrice.currencyCode}"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </wa-card>
+    </div>
+</div>

@@ -1,0 +1,25 @@
+<aside th:fragment="dashboardSidebar(activeSection)"
+       style="position: sticky; top: var(--wa-space-2xl);">
+    <wa-card style="padding: var(--wa-space-l);">
+        <wa-tree selection="single">
+            <wa-tree-item th:attr="selected=${activeSection == 'orders'}">
+                <a th:href="@{/}"
+                   style="display: block; width: 100%; color: inherit; text-decoration: none; padding: var(--wa-space-xs) 0;">
+                    Orders
+                </a>
+            </wa-tree-item>
+            <wa-tree-item th:attr="selected=${activeSection == 'products'}">
+                <a th:href="@{/products}"
+                   style="display: block; width: 100%; color: inherit; text-decoration: none; padding: var(--wa-space-xs) 0;">
+                    Products
+                </a>
+            </wa-tree-item>
+            <wa-tree-item th:attr="selected=${activeSection == 'stores'}">
+                <a th:href="@{/stores}"
+                   style="display: block; width: 100%; color: inherit; text-decoration: none; padding: var(--wa-space-xs) 0;">
+                    Stores
+                </a>
+            </wa-tree-item>
+        </wa-tree>
+    </wa-card>
+</aside>

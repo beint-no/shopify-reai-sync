@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface ReaiConnectionRepository : JpaRepository<ReaiConnection, Int> {
     fun findByShopifyInstallation(shopifyInstallation: ShopifyInstallation): ReaiConnection?
-    fun findByTenantId(tenantId: Long): ReaiConnection?
+    fun findByTenantId(tenantId: Long): List<ReaiConnection>
 }

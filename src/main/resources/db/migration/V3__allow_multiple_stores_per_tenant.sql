@@ -1,0 +1,2 @@
+ALTER TABLE reai_connection DROP CONSTRAINT reai_connection_shopify_installation_id_key;
+ALTER TABLE reai_connection ADD CONSTRAINT reai_connection_tenant_id_shopify_installation_id_key UNIQUE (tenant_id, shopify_installation_id);

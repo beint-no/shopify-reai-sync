@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Manage Shopify Stores</title>
+    <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css"/>
+    <script type="module" src="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/webawesome.loader.js"></script>
+    <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/themes/matter.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.7/dist/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx-ext-response-targets@2.0.2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/temporal-polyfill@0.3.0/global.min.js"></script>
+</head>
+<body class="wa-cloak" style="margin: 0; background-color: var(--wa-color-gray-90);">
+<main class="wa-stack wa-gap-xl" style="margin: 0 auto; padding: var(--wa-space-2xl);">
+    <header class="wa-split">
+        <wa-card class="wa-cluster" style="width: 100%;">
+            <span class="wa-heading-s wa-desktop-only">Shopify - Reai</span>
+        </wa-card>
+    </header>
+
+    <section th:if="${errorMessage != null}" style="width: 100%;">
+        <wa-card style="border-left: var(--wa-border-width-l) solid var(--wa-color-danger-60);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-danger-60);">Error</strong>
+                <span th:text="${errorMessage}"></span>
+            </div>
+        </wa-card>
+    </section>
+
+    <section th:if="${!reaiConnected}" style="width: 100%;">
+        <wa-card style="border-left: var(--wa-border-width-l) solid var(--wa-color-warning-60);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-warning-60);">ReAI Connection Required</strong>
+                <span>You should connect from ReAI to use this app. Please open this app from your ReAI dashboard.</span>
+            </div>
+        </wa-card>
+    </section>
+
+    <div th:if="${reaiConnected}">
+        <div style="display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: var(--wa-space-xl); align-items: start;">
+            <div th:replace="fragments/dashboard-sidebar :: dashboardSidebar(${activeSection})"></div>
+            <div class="wa-stack wa-gap-xl">
+                <section th:if="${reaiRecentlyConnected}" style="width: 100%;">
+                    <wa-card style="border-left: var(--wa-border-width-l) solid var(--wa-color-success-40);">
+                        <div class="wa-stack wa-gap-xs">
+                            <strong style="color: var(--wa-color-success-40);">ReAI connection established</strong>
+                            <span>The access token from ReAI is now active.</span>
+                        </div>
+                    </wa-card>
+                </section>
+
+                <wa-card style="padding: var(--wa-space-xl);">
+                    <div class="wa-stack wa-gap-l">
+                        <div class="wa-stack wa-gap-xs">
+                            <h2 class="wa-heading-m">Manage Shopify Stores</h2>
+                            <p style="color: var(--wa-color-gray-60);">For ReAI Tenant ID: <strong th:text="${currentTenantId}"></strong></p>
+                        </div>
+
+                        <div th:if="${shopifyStoreLinked}">
+                            <p style="color: var(--wa-color-gray-60);">Currently linked stores:</p>
+                            <table class="wa-table">
+                                <thead>
+                                <tr>
+                                    <th>Store Domain</th>
+                                    <th>Auto-Sync</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="installation : ${installationsForTenant}">
+                                    <td th:text="${installation.shopDomain}"></td>
+                                    <td>
+                                        <form th:action="@{/stores/toggle-auto-sync}" method="post" style="margin: 0;">
+                                            <input type="hidden" name="tenant_id" th:value="${currentTenantId}"/>
+                                            <input type="hidden" name="shop_domain" th:value="${installation.shopDomain}"/>
+                                            <wa-button type="submit" th:variant="${reaiStatuses[installation.shopDomain]?.autoSync ? 'success' : 'danger'}">
+                                                <span th:text="${reaiStatuses[installation.shopDomain]?.autoSync ? 'Active' : 'Inactive'}"></span>
+                                            </wa-button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <form th:action="@{/shopify/disconnect}" method="post" style="margin: 0;">
+                                            <input type="hidden" name="tenant_id" th:value="${currentTenantId}"/>
+                                            <input type="hidden" name="shop_domain" th:value="${installation.shopDomain}"/>
+                                            <wa-button variant="danger" size="s" type="submit">Disconnect</wa-button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div th:if="${promptInstallShopify}">
+                            <p style="color: var(--wa-color-gray-60);">Install a new store:</p>
+                            <form class="wa-stack wa-gap-s wa-align-items-start"
+                                  method="get"
+                                  th:action="@{/oauth/install}">
+                                <input type="hidden" name="tenant_id" th:value="${currentTenantId}"/>
+                                <wa-input label="Shop domain"
+                                          name="shop"
+                                          placeholder="example-store"
+                                          required>
+                                </wa-input>
+                                <wa-button variant="brand" type="submit">Install new Shopify app</wa-button>
+                            </form>
+                        </div>
+                    </div>
+                </wa-card>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

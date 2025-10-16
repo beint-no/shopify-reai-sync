@@ -1,0 +1,1 @@
+ALTER TABLE reai_connection ADD COLUMN auto_sync BOOLEAN NOT NULL DEFAULT false;

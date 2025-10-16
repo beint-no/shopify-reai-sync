@@ -1,6 +1,6 @@
 package com.respiroc.shopifyreaisync.service
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.respiroc.shopifyreaisync.dto.reai.ReaiTokenResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
@@ -32,13 +32,3 @@ class ReaiTokenClient(
         return response.accessToken ?: throw IllegalStateException("Token response missing access token")
     }
 }
-
-data class ReaiTokenResponse(
-    @JsonProperty("access_token")
-    val accessToken: String?,
-    @JsonProperty("token_type")
-    val tokenType: String?,
-    @JsonProperty("expires_in")
-    val expiresIn: Long?,
-    val scope: String?
-)

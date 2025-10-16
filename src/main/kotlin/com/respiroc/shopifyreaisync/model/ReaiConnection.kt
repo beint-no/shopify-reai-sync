@@ -29,5 +29,13 @@ class ReaiConnection(
     @Column(name = "access_token", columnDefinition = "text")
     var accessToken: String? = null,
     @Column(name = "access_token_expires_at")
-    var accessTokenExpiresAt: OffsetDateTime? = null
+    var accessTokenExpiresAt: OffsetDateTime? = null,
+    @Column(name = "client_id", length = 160)
+    var clientId: String? = null,
+    @Column(name = "client_secret", columnDefinition = "text")
+    var clientSecret: String? = null,
+    @Column(name = "granted_scope", length = 512)
+    var grantedScope: String? = null,
+    @Column(name = "auto_sync", nullable = false)
+    var autoSync: Boolean = false
 )

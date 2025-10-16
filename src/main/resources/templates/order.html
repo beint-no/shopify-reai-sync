@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Shopify Order Lookup</title>
+    <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css"/>
+    <script type="module" src="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/webawesome.loader.js"></script>
+    <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/themes/matter.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.7/dist/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx-ext-response-targets@2.0.2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/temporal-polyfill@0.3.0/global.min.js"></script>
+    <style>
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="wa-cloak" style="margin: 0; background-color: var(--wa-color-gray-90);">
+<main class="wa-stack wa-gap-xl" style="margin: 0 auto; padding: var(--wa-space-2xl);">
+    <header class="wa-split">
+        <wa-card class="wa-cluster" style="width: 100%;">
+            <span class="wa-heading-s wa-desktop-only">Shopify - Reai</span>
+        </wa-card>
+    </header>
+
+    <section th:if="${errorMessage != null}" style="width: 100%;">
+        <wa-card style="border-left: var(--wa-border-width-l) solid var(--wa-color-danger-60);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-danger-60);">Error</strong>
+                <span th:text="${errorMessage}"></span>
+            </div>
+        </wa-card>
+    </section>
+
+    <section th:if="${!reaiConnected}" style="width: 100%;">
+        <wa-card style="border-left: var(--wa-border-width-l) solid var(--wa-color-warning-60);">
+            <div class="wa-stack wa-gap-xs">
+                <strong style="color: var(--wa-color-warning-60);">ReAI Connection Required</strong>
+                <span>You should connect from ReAI to use this app. Please open this app from your ReAI dashboard.</span>
+            </div>
+        </wa-card>
+    </section>
+
+    <div th:if="${reaiConnected}">
+        <div style="display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: var(--wa-space-xl); align-items: start;">
+            <div th:replace="fragments/dashboard-sidebar :: dashboardSidebar(${activeSection})"></div>
+            <div class="wa-stack wa-gap-xl">
+                <section th:if="${reaiRecentlyConnected}" style="width: 100%;">
+                    <wa-card style="border-left: var(--wa-border-width-l) solid var(--wa-color-success-40);">
+                        <div class="wa-stack wa-gap-xs">
+                            <strong style="color: var(--wa-color-success-40);">ReAI connection established</strong>
+                            <span>The access token from ReAI is now active.</span>
+                        </div>
+                    </wa-card>
+                </section>
+
+                <wa-card style="padding: var(--wa-space-xl);">
+                    <div class="wa-stack wa-gap-l">
+                        <div class="wa-stack wa-gap-xs">
+                            <h2 class="wa-heading-m">Find an order</h2>
+                            <p style="color: var(--wa-color-gray-60);">Provide the store and the order number exactly as it appears in Shopify.</p>
+                        </div>
+                        <div th:if="${!shopifyStoreLinked}" style="color: var(--wa-color-gray-60);">
+                            Install a Shopify store to start searching for orders.
+                        </div>
+                        <form id="orderSearchForm"
+                              class="wa-stack wa-gap-m wa-align-items-start"
+                              th:attr="hx-post=@{/orders/search}"
+                              hx-target="#orderResult"
+                              hx-swap="innerHTML"
+                              hx-indicator="#loadingIndicator"
+                              th:if="${shopifyStoreLinked}">
+                            <wa-select label="Connected store"
+                                       name="shop"
+                                       required
+                                       th:attr="disabled=${!shopifyStoreLinked}">
+                                <wa-option th:each="installation : ${installationsForTenant}"
+                                           th:value="${installation.shopDomain}"
+                                           th:selected="${installation.shopDomain == selectedShop}"
+                                           th:text="${installation.shopDomain}">
+                                </wa-option>
+                            </wa-select>
+                            <wa-input label="Order number"
+                                      name="orderNumber"
+                                      required
+                                      placeholder="1001"
+                                      th:attr="value=${orderNumber}">
+                            </wa-input>
+                            <input type="hidden" name="tenant_id" th:value="${currentTenantId}"/>
+                            <wa-button variant="brand"
+                                       type="submit"
+                                       th:attr="disabled=${!shopifyStoreLinked}">
+                                Search order
+                            </wa-button>
+                        </form>
+                        <div id="orderResult" class="wa-stack wa-gap-m"></div>
+                        <div id="loadingIndicator" class="htmx-indicator" style="gap: var(--wa-space-s); align-items: center; color: var(--wa-color-gray-60);">
+                            <wa-spinner></wa-spinner>
+                            <span>Fetching order from Shopify…</span>
+                        </div>
+                    </div>
+                </wa-card>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

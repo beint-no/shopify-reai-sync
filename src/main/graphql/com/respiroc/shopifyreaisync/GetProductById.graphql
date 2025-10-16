@@ -1,0 +1,39 @@
+query GetProductById($id: ID!) {
+    shop { currencyCode }
+    product(id: $id) {
+        id
+        title
+        description
+        variants(first: 100) {
+            edges {
+                node {
+                    id
+                    title
+                    sku
+                    barcode
+                    price
+                    inventoryQuantity
+                    inventoryItem {
+                        unitCost {
+                            amount
+                            currencyCode
+                        }
+                        inventoryLevels(first: 10) {
+                            edges {
+                                node {
+                                    location {
+                                        name
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    selectedOptions {
+                        name
+                        value
+                    }
+                }
+            }
+        }
+    }
+}

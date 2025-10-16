@@ -1,0 +1,49 @@
+query SearchProducts($query: String!, $first: Int = 10, $after: String) {
+    shop {
+        currencyCode
+    }
+    products(first: $first, query: $query, after: $after) {
+        edges {
+            node {
+                id
+                title
+                description
+                variants(first: 100) {
+                    edges {
+                        node {
+                            id
+                            title
+                            sku
+                            barcode
+                            inventoryQuantity
+                            inventoryItem {
+                                unitCost {
+                                    amount
+                                    currencyCode
+                                }
+                                inventoryLevels(first: 10) {
+                                    edges {
+                                        node {
+                                            location {
+                                                name
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            price
+                            selectedOptions {
+                                name
+                                value
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        pageInfo {
+            hasNextPage
+            endCursor
+        }
+    }
+}
