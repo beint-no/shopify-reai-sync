@@ -15,8 +15,9 @@ class AutoSyncService(
     private val shopifyOrderService: ShopifyOrderService
 ) {
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 18 17 * * *")
     fun syncAll() {
+        println("started")
         val connections = reaiConnectionRepository.findAll()
         connections.forEach { connection ->
             if (connection.autoSync) {

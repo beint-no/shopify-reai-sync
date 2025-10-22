@@ -67,7 +67,7 @@ data class ReaiProductSyncRequest(
     val productId: Long?,
     val title: String,
     val description: String?,
-    val variantOptionTypes: Set<ReaiVariantOptionType>,
+    val variantOptionTypes: Set<String>,
     val variants: List<ReaiProductVariantSyncRequest>
 )
 
@@ -76,7 +76,7 @@ data class ReaiProductVariantSyncRequest(
     val barcode: String?,
     val costPrice: BigDecimal?,
     val sellingPrice: BigDecimal,
-    val options: Map<ReaiVariantOptionType, String>,
+    val options: Map<String, String>,
     val inventory: Int?,
     val warehouseName: String?
 )

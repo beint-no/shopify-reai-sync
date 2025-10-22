@@ -9,12 +9,12 @@ import com.respiroc.shopifyreaisync.dto.product.ShopifyProductDetails
 import com.respiroc.shopifyreaisync.dto.reai.ReaiProductSnapshotResponse
 import com.respiroc.shopifyreaisync.dto.reai.ReaiProductSyncRequest
 import com.respiroc.shopifyreaisync.dto.reai.ReaiProductVariantSyncRequest
-import com.respiroc.shopifyreaisync.dto.reai.ReaiVariantOptionType
 import com.respiroc.shopifyreaisync.model.ReaiProductSyncRecord
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.HttpClientErrorException
 import java.math.BigDecimal
+import java.util.Locale
 
 @Service
 class ReaiProductSyncService(
@@ -71,22 +71,25 @@ class ReaiProductSyncService(
         productDetails: ShopifyProductDetails,
         reaiProductId: Long?
     ): ReaiProductSyncRequest {
-        val variantOptionTypes = linkedSetOf<ReaiVariantOptionType>()
-        val unsupportedOptionTypes = mutableSetOf<String>()
+        val variantOptionTypes = linkedSetOf<String>()
+        val optionNamesByNormalized = linkedMapOf<String, String>()
+        val invalidOptionNames = mutableSetOf<String>()
         val variantRequests = productDetails.variants
             .filter { it.sku?.isNotBlank() == true }
             .map { variant ->
                 val sku = variant.sku!!.trim()
-                val optionValues = linkedMapOf<ReaiVariantOptionType, String>()
+                val optionValues = linkedMapOf<String, String>()
                 variant.selectedOptions.forEach { selectedOption ->
-                    val type = ReaiVariantOptionType.fromDisplayName(selectedOption.name)
-                    if (type == null) {
-                        unsupportedOptionTypes.add(selectedOption.name.trim())
+                    val trimmedName = selectedOption.name.trim()
+                    if (trimmedName.isEmpty()) {
+                        invalidOptionNames.add(selectedOption.name)
                         return@forEach
                     }
+                    val normalizedName = trimmedName.lowercase(Locale.ROOT)
+                    val canonicalName = optionNamesByNormalized.getOrPut(normalizedName) { trimmedName }
                     val value = selectedOption.value.trim()
-                    variantOptionTypes.add(type)
-                    optionValues[type] = value
+                    variantOptionTypes.add(canonicalName)
+                    optionValues[canonicalName] = value
                 }
                 ReaiProductVariantSyncRequest(
                     sku = sku,
@@ -101,9 +104,9 @@ class ReaiProductSyncService(
         if (variantRequests.isEmpty()) {
             throw IllegalStateException("No variants with SKU found for product ${productDetails.title}")
         }
-        if (unsupportedOptionTypes.isNotEmpty()) {
+        if (invalidOptionNames.isNotEmpty()) {
             throw IllegalStateException(
-                "Unsupported variant options for product ${productDetails.title}: types ${unsupportedOptionTypes.joinToString(", ")}"
+                "Invalid variant option names for product ${productDetails.title}: ${invalidOptionNames.joinToString(", ")}"
             )
         }
         return ReaiProductSyncRequest(
@@ -145,10 +148,12 @@ class ReaiProductSyncService(
         if (normalize(syncRequest.description) != normalize(reaiProduct.description)) {
             return true
         }
-        val requestedOptionTypes = syncRequest.variantOptionTypes.map { it.displayName }.toSet()
-        if (requestedOptionTypes != reaiProduct.variantOptionTypes) {
+        val requestedOptionTypes = syncRequest.variantOptionTypes.map { it.trim() }.toSet()
+        val existingOptionTypes = reaiProduct.variantOptionTypes.map { it.trim() }.toSet()
+        if (requestedOptionTypes != existingOptionTypes) {
             return true
         }
+        val canonicalNamesByNormalized = syncRequest.variantOptionTypes.associateBy { it.lowercase(Locale.ROOT) }
         val requestVariants = syncRequest.variants.associateBy { it.sku }
         val reaiVariants = reaiProduct.variants.associateBy { it.sku }
         if (requestVariants.keys != reaiVariants.keys) {
@@ -169,13 +174,11 @@ class ReaiProductSyncService(
                 return true
             }
             val requestOptions = requestVariant.options
-            val reaiOptions = mutableMapOf<ReaiVariantOptionType, String>()
+            val reaiOptions = linkedMapOf<String, String>()
             for ((rawType, value) in reaiVariant.options) {
-                val type = ReaiVariantOptionType.fromSerializedKey(rawType)
-                if (type == null) {
-                    return true
-                }
-                reaiOptions[type] = value
+                val trimmedType = rawType.trim()
+                val canonicalType = canonicalNamesByNormalized[trimmedType.lowercase(Locale.ROOT)] ?: trimmedType
+                reaiOptions[canonicalType] = value.trim()
             }
             if (requestOptions != reaiOptions) {
                 return true
